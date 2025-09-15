@@ -1,10 +1,12 @@
 ﻿using Bolt;
 using Core;
+using System.Text.RegularExpressions;
 
 namespace Server
 {
     public partial class PhotonBoltServerListener
     {
+        private const int MaxChatLength = 256;
         public override void OnEvent(TargetSelectionRequestEvent targetingRequest)
         {
             base.OnEvent(targetingRequest);
@@ -37,10 +39,18 @@ namespace Server
             if (!player.IsAlive)
                 return;
 
+            // sanitize message: collapse whitespace, trim, clamp length
+            string message = chatRequest.Message ?? string.Empty;
+            message = Regex.Replace(message, "\\s+", " ").Trim();
+            if (string.IsNullOrEmpty(message))
+                return;
+            if (message.Length > MaxChatLength)
+                message = message.Substring(0, MaxChatLength);
+
             UnitChatMessageEvent unitChatMessageEvent = UnitChatMessageEvent.Create(GlobalTargets.Everyone);
             unitChatMessageEvent.SenderId = player.BoltEntity.NetworkId;
             unitChatMessageEvent.SenderName = player.Name;
-            unitChatMessageEvent.Message = chatRequest.Message;
+            unitChatMessageEvent.Message = message;
             unitChatMessageEvent.Send();
         }
 

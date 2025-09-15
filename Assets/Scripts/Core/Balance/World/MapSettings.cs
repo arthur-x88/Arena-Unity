@@ -36,7 +36,14 @@ namespace Core
 
         public List<Transform> FindSpawnPoints(Team team)
         {
-            return spawnInfos.Find(spawnInfo => spawnInfo.Team == team).SpawnPoints;
+            var info = spawnInfos?.Find(spawnInfo => spawnInfo.Team == team);
+            if (info == null || info.SpawnPoints == null || info.SpawnPoints.Count == 0)
+            {
+                Debug.LogWarning($"No spawn points configured for team {team} on map {mapDefinition?.MapName}. Falling back to default spawn point.");
+                return new List<Transform> { defaultSpawnPoint };
+            }
+
+            return info.SpawnPoints;
         }
 
 #if UNITY_EDITOR

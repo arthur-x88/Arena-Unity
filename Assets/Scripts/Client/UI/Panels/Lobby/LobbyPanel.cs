@@ -146,7 +146,7 @@ namespace Client
             clientServerButton.onClick.RemoveListener(OnClientButtonClicked);
             regionDropdown.onValueChanged.RemoveListener(OnRegionDropdownChanged);
             playerNameInput.onValueChanged.RemoveListener(OnPlayerNameChanged);
-            serverNameInput.onValueChanged.AddListener(OnServerNameChanged);
+            serverNameInput.onValueChanged.RemoveListener(OnServerNameChanged);
 
             base.PanelDeinitialized();
         }
@@ -270,7 +270,8 @@ namespace Client
 
             UpdateInputState(false);
 
-            photonReference.StartServer(new ServerRoomToken(serverNameInput.text, playerNameInput.text, selectedMapSlot.MapDefinition.MapName), true, OnServerStartSuccess, OnServerStartFail);
+            var mapDef = selectedMapSlot.MapDefinition;
+            photonReference.StartServer(new ServerRoomToken(serverNameInput.text, playerNameInput.text, mapDef.MapName) { MapId = mapDef.Id }, true, OnServerStartSuccess, OnServerStartFail);
 
             void OnServerStartFail()
             {
@@ -295,7 +296,8 @@ namespace Client
 
             UpdateInputState(false);
 
-            photonReference.StartSinglePlayer(new ServerRoomToken(serverNameInput.text, playerNameInput.text, selectedMapSlot.MapDefinition.MapName), OnServerStartSuccess, OnServerStartFail);
+            var mapDef = selectedMapSlot.MapDefinition;
+            photonReference.StartSinglePlayer(new ServerRoomToken(serverNameInput.text, playerNameInput.text, mapDef.MapName) { MapId = mapDef.Id }, OnServerStartSuccess, OnServerStartFail);
 
             void OnServerStartFail()
             {

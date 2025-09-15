@@ -43,20 +43,20 @@ namespace Server
 
         public override void SceneLoadLocalDone(string map, IProtocolToken token)
         {
-            // TODO(TwiiK): After upgrading Bolt from 1.2.9 to 1.2.15 the "Launcher" scene would be passed in here as
-            // well, which cause errors like duplicate players etc. It wasn't like this originally, but I'm not sure
-            // what exactly has changed in Bolt to cause this. I'm sure this can be fixed properly, and not with a hack
-            // like this, but I'm not going to investigate that at the moment. In another project I've upgraded Bolt to
-            // 1.3.2 and the problem is there as well, so I assume this is due to some change in Bolt itself.
-            if (map == "Launcher") {
-                return;
-            }
-            
             base.SceneLoadLocalDone(map, token);
+
+            // Proceed only for gameplay scenes (have MapSettings in hierarchy)
+            var settings = Object.FindObjectOfType<MapSettings>();
+            if (settings == null)
+                return;
 
             if (BoltNetwork.IsConnected)
             {
-                World.MapManager.InitializeLoadedMap(1);
+                // Initialize map using definition Id and propagate MapId to the session token
+                World.MapManager.InitializeLoadedMap(settings.Definition.Id);
+
+                if (token is ServerRoomToken roomToken)
+                    roomToken.MapId = settings.Definition.Id;
 
                 EventHandler.ExecuteEvent(photon, GameEvents.ServerMapLoaded, (ServerRoomToken)token);
             }
@@ -92,6 +92,14 @@ namespace Server
             if (clientToken.Version != ServerToken.Version)
             {
                 BoltNetwork.Refuse(endpoint, new ClientRefuseToken(ConnectRefusedReason.InvalidVersion));
+                return;
+            }
+
+            // Basic name validation: 1..24 visible chars, trim whitespace
+            string clientName = clientToken.Name?.Trim();
+            if (string.IsNullOrEmpty(clientName) || clientName.Length > 24)
+            {
+                BoltNetwork.Refuse(endpoint, new ClientRefuseToken(ConnectRefusedReason.InvalidToken));
                 return;
             }
 
