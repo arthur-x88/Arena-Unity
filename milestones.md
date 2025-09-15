@@ -37,6 +37,34 @@
 ┃ • Shared roadmap published (Confluence/Notion) with weekly checkpoints.
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+┏━━ Tech Debt Surface (Networking / Data / Automation) ━━━━━━━━━━
+┃ • Networking: Replace tag-based lookup in `PhotonBoltReference` with explicit wiring;
+┃   audit session lifecycle (create, update, shutdown) and ensure `MapId` is always present.
+┃ • Threading: Keep gameplay updates on main thread; if `MapUpdater` is used, restrict to data-only work.
+┃ • Visibility: Guard all debug `Drawing.*` calls with defines; remove in builds.
+┃ • Tokens & Validation: Sanitize names, clamp lengths, and normalize classes; expand refusal reasons for analytics.
+┃ • Scriptables: Verify all `ScriptableReference` registrations in `Common.ScriptableContainer` to prevent silent content loss.
+┃ • Balance Data: Add validation passes for duplicate IDs, missing assets, and broken references on CI.
+┃ • Automation: Add CI cache hints to reduce `Library/` rebuild churn; add CLI tasks to run headless server/client smoke.
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┏━━ KPIs & Analytics Plan (Arena Loop) ━━━━━━━━━━━━━━━━━━━━━━━━━━
+┃ • Match Lifecycle: start, end, duration, outcome, mapId, mode (PvP/PvE).
+┃ • Queue Metrics: time to first session list, matchmaking wait p50/p95, connect success/fail reasons.
+┃ • Combat: ability usage/min, damage/heal per player, hit/miss distribution, deaths, interrupts.
+┃ • Retention & Engagement: D1/D7/D30, sessions/day, avg session length, crash/disconnect rate.
+┃ • Event Sources:
+┃   – Server `GameSpellListener`: `ServerSpellLaunch`, `ServerSpellHit`, `ServerDamageDone`, `ServerHealingDone`.
+┃   – Server `WorldServer`/`PhotonBoltServerListener`: match start (on map init), match end (on shutdown).
+┃   – Client `LobbyPanel`: queue start, session list received, connect success/fail.
+┃ • Payload Schema (examples):
+┃   – `match_start { match_id, map_id, mode, region, version }`
+┃   – `match_end { match_id, duration_ms, outcome, players, crashes, disconnects }`
+┃   – `ability_cast { match_id, caster_id, class, spell_id, target_id?, position, result }`
+┃   – `queue_metric { region, start_ts, first_list_ms, connect_ms, result }`
+┃ • Sink Strategy: Inject `IAnalyticsSink` with local file sink for dev; wire remote telemetry in M7.
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ╔════════════════════════════════════════════════════════════════════╗
 ║ M1 ▸ Combat Core Upgrade (Weeks 3-8)                               ║
 ╚════════════════════════════════════════════════════════════════════╝
