@@ -152,9 +152,10 @@ namespace Core
             for (int i = minX; i <= maxX; i++)
             for (int j = minZ; j <= maxZ; j++)
             {
+#if UNITY_EDITOR || DEBUG_VIS_GRID
                 Drawing.DrawLine(referer.Position + Vector3.up, cells[i, j].Center + Vector3.up * 20, Color.red, 1.0f);
                 Drawing.DrawLine(cells[i, j].MaxBounds + Vector3.up * 20, cells[i, j].MinBounds + Vector3.up * 20, cells[i, j] != originCell ? Color.green : Color.yellow, 1.0f);
-
+#endif
                 cells[i, j].Visit(unitVisitor);
             }
         }

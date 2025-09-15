@@ -54,10 +54,13 @@ namespace Core
         {
             cancellationTokenSource.Cancel();
 
+            // signal no more adds and wait for pending to drain
+            try { updateRequests.CompleteAdding(); } catch { /* ignore */ }
             Wait();
 
+            // join workers and dispose queue
+            workerThreads.ForEach(thread => { try { thread.Join(); } catch { /* ignore */ } });
             updateRequests.Dispose();
-            workerThreads.ForEach(thread => thread.Join());
         }
 
         public void ScheduleUpdate(Map map, int deltaTime)
@@ -69,8 +72,9 @@ namespace Core
 
         public void Wait()
         {
-            while (pendingRequests == 0)
-                return;
+            var spinner = new System.Threading.SpinWait();
+            while (System.Threading.Volatile.Read(ref pendingRequests) != 0)
+                spinner.SpinOnce();
         }  
 
         private void UpdateFinished()
@@ -80,13 +84,20 @@ namespace Core
 
         private void WorkerThread()
         {
-            while (true)
+            try
             {
-                if (updateRequests.TryTake(out MapUpdateRequest request, 10, cancellationTokenSource.Token))
-                    request.Call();
+                while (true)
+                {
+                    if (updateRequests.TryTake(out MapUpdateRequest request, 10, cancellationTokenSource.Token))
+                        request.Call();
 
-                if (cancellationTokenSource.IsCancellationRequested)
-                    return;
+                    if (cancellationTokenSource.IsCancellationRequested)
+                        return;
+                }
+            }
+            catch (System.OperationCanceledException)
+            {
+                // graceful shutdown
             }
         }
     }

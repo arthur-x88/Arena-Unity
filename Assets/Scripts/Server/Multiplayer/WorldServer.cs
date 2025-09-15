@@ -121,7 +121,11 @@ namespace Server
 
         internal void CreatePlayer(BoltConnection boltConnection = null)
         {
-            Map mainMap = MapManager.FindMap(1);
+            Map mainMap = null;
+            if (serverRoomToken != null && serverRoomToken.MapId > 0)
+                mainMap = MapManager.FindMap(serverRoomToken.MapId);
+            if (mainMap == null)
+                mainMap = MapManager.FindMap(1);
             Transform spawnPoint = RandomUtils.GetRandomElement(mainMap.Settings.FindSpawnPoints(Team.Alliance));
 
             ClassType classType;
