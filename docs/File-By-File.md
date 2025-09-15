@@ -1,79 +1,80 @@
-# File-by-File Plan — 0.1 MOBA x Arena
+# File-By-File Map (Expanded)
 
-This is the authoritative checklist of new/changed files. Paths are relative to repo root.
+Use this as a compass when navigating the codebase. Paths are workspace‑relative.
 
-Legend
-- [N] New file
-- [M] Modify existing
-- [SO] ScriptableObject asset
+## Core Gameplay
 
-1) Match Lifecycle & Teams
-- [N] Assets/Scripts/Core/Match/MatchState.cs — enum + struct snapshot (Phase, TimeMs, TeamScores, TowerHp[])
-- [N] Assets/Scripts/Core/Match/MatchManager.cs — server authority; state machine; win checks; events; replication API
-- [N] Assets/Scripts/Core/Match/MatchNetworkState.cs — Bolt state or lightweight replicator for MatchState
-- [N] Assets/Scripts/Core/Match/TeamManager.cs — team assignment, team colors, spawn selection
-- [M] Assets/Scripts/Server/Multiplayer/WorldServer.cs — hook MatchManager; spawn routing; end flow to lobby
-- [M] Assets/Scripts/Core/Utils/MultiplayerUtils.cs — small helpers (team identifiers, colors)
+- Entities
+  - `Assets/Scripts/Core/Entity/Unit/Unit.cs`: Base unit logic (attributes, motion, spells, auras, control states).
+  - `Assets/Scripts/Core/Entity/Player/Player.cs`: Player‑specific state, control tokens, visibility, class switching.
+  - `Assets/Scripts/Core/Entity/UnitManager.cs`: Instantiate/destroy units, collider→unit mappings.
+  - Controllers (partials):
+    - `Assets/Scripts/Core/Entity/Unit/Controllers/Unit.SpellController.cs`: Casting, hits, crits, absorbs, modifiers, triggers.
+    - Additional controllers under `.../Attributes`, `.../Motion`, `.../Combat`.
 
-2) Map — Lane & Structures
-- [SO][N] Assets/Settings/Balance/Maps/LaneDefinition.asset — waypoints list; spawn points per team; base/tower transforms
-- [SO][N] Assets/Settings/Balance/Maps/StructureDefinition.asset — tower/base stats (HP, damage, attackRate, range)
-- [N] Assets/Scripts/Core/World/LaneDefinition.cs — runtime view over waypoints
-- [N] Assets/Scripts/Core/World/StructureDefinition.cs — runtime data for towers/bases
-- [N] Assets/Prefabs/Structures/Tower.prefab — collider, attack origin, script hook
-- [N] Assets/Prefabs/Structures/Base.prefab — collider, script hook
+- Spells & Auras
+  - `Assets/Scripts/Core/Spells/SpellInfo.cs`: Scriptable definition with attributes/costs/effects/targeting checks.
+  - `Assets/Scripts/Core/Spells/Spell.cs`: Runtime spell execution (casting → processing → complete).
+  - Effects: `Assets/Scripts/Core/Spells/Spell Effects/*.cs` (damage, heal, trigger, dispel, teleport, etc.).
+  - Auras: `Assets/Scripts/Core/Spells/Spell Auras/*.cs` and `AuraEffectInfo*` types.
 
-3) Minion Waves
-- [SO][N] Assets/Settings/Balance/Units/Minion/MinionDefinition.asset — HP, damage, move speed, gold/XP values
-- [N] Assets/Prefabs/Units/Minion.prefab — model + Unit wiring
-- [N] Assets/Scripts/Server/AI/Minion/MinionBrain.cs — simple state machine (FollowLane, Acquire, Attack)
-- [N] Assets/Scripts/Server/AI/Minion/WaveManager.cs — spawn logic; interval; composition; team side
-- [M] Assets/Scripts/Core/Entity/Unit/Unit.cs — ensure server-only AI ticks (or add a server tick hook)
+- Maps & Visibility
+  - `Assets/Scripts/Core/Map/Map.cs`: Map runtime (entities list, visibility helpers, AoE search).
+  - `Assets/Scripts/Core/Map/MapManager.cs`: Map registry, init on scene load, update loop.
+  - Grid: `Assets/Scripts/Core/World/Grid/MapGrid.*.cs`: Spatial partitioning, visibility updates.
+  - `Assets/Scripts/Core/Balance/World/MapSettings.cs`: Scene component with bounding box, grid cell size, spawns, scenario actions.
 
-4) Structures (Towers/Base)
-- [N] Assets/Scripts/Server/AI/Structures/TowerBrain.cs — targeting rules; attack cadence; aggro swap logic
-- [N] Assets/Scripts/Server/AI/Structures/BaseCore.cs — HP, death triggers victory
-- [SO][N] Assets/Settings/Spells/StructureAttack Spell.asset — reuse Spell pipeline for tower shots (projectile or instant)
+- Balance Data (Scriptables)
+  - `Assets/Scripts/Core/Balance/BalanceReference.cs`: Entry point to balance content; fast lookup dictionaries.
+  - `Assets/Scripts/Core/Balance/World/MapDefinition.cs`: Map metadata (id, name, max visibility range).
+  - `Assets/Scripts/Core/Entity/Player/Classes/ClassInfo.cs`: Class spells/powers, availability.
+  - `Assets/Scripts/Core/Entity/Player/Classes/ClassInfoContainer.cs`: Registered class list.
 
-5) Economy & Progression
-- [N] Assets/Scripts/Server/Match/Economy/PlayerEconomy.cs — gold, assists, CS; server-only state; events
-- [N] Assets/Scripts/Server/Match/Economy/ExperienceSystem.cs — XP distribution; level-ups; stat scaling hooks
-- [M] Assets/Scripts/Core/Entity/Player/Player.cs — attach PlayerEconomy; expose KDA/CS; level
-- [N] Assets/Scripts/Core/Entity/Player/PlayerLevelDefinition.cs [SO] — per-level stat/rank tables
+## Multiplayer (Photon Bolt)
 
-6) Items & Shop (passive only for 0.1)
-- [SO][N] Assets/Settings/Items/ItemDefinition.asset (multiple) — cost, prerequisites, applied auras/modifiers
-- [N] Assets/Scripts/Core/Items/ItemDefinition.cs — runtime data (list of AuraInfo/SpellModifier references)
-- [N] Assets/Scripts/Core/Items/Inventory.cs — holds purchased items; applies/removes auras
-- [N] Assets/Scripts/Client/UI/Panels/Shop/ShopPanel.cs — simple UI; buy/sell; base-radius check
-- [M] Assets/Scripts/Client/UI/Panels/Battle/BattleHUD.cs — add gold/level display hooks
+- `Assets/Scripts/Core/Multiplayer/PhotonBoltController.cs`: Bolt start/stop/connect/session logic; scene load gate.
+- `Assets/Scripts/Core/Multiplayer/PhotonBoltReference.cs`: Scriptable bridge to controller.
+- Tokens: `Assets/Scripts/Core/Multiplayer/Tokens/*.cs`
+  - `ServerRoomToken`: Name/MapName/MapId/Version for sessions.
+  - `ClientConnectionToken`: Player name, device id, version, preferred class.
+- Listeners (Core):
+  - `Assets/Scripts/Core/Multiplayer/Listeners/PhotonBoltBaseListener.cs`: Base GlobalEventListener.
+  - `Assets/Scripts/Core/Multiplayer/Listeners/PhotonBoltSharedListener.cs`: Client/shared scene init and map registration.
 
-7) HUD, Scoreboard, End Screen
-- [N] Assets/Scripts/Client/UI/HUD/MatchHud.cs — timer, scores, tower statuses, killfeed hooks
-- [N] Assets/Scripts/Client/UI/Panels/Scoreboard/ScoreboardPanel.cs — tab toggle; list players; K/D/A/CS/gold/items
-- [N] Assets/Scripts/Client/UI/Panels/End/EndPanel.cs — winner, summary, leave button
-- [M] Assets/Prefabs/UI/Screens — add canvases/panels for new screens
+## Server Orchestration
 
-8) Recall & Respawn
-- [SO][N] Assets/Settings/Balance/Spells/Recall Spell.asset — uses TeleportDirect; long cast; cancel on damage/move
-- [N] Assets/Scripts/Server/Match/RespawnSystem.cs — manage death timers; spawn at base; scale with game time
-- [M] Assets/Scripts/Core/Entity/Unit/Unit.cs — ensure death event hooks exist for respawn/economy
+- `Assets/Scripts/Server/Multiplayer/WorldServer.cs`: Player lifecycle, default scoping, create players, attach/detach events.
+- Game listeners: `Assets/Scripts/Server/Multiplayer/Game Listeners/*`
+  - `GamePlayerListener.cs`: Speed/root/movement control replication.
+  - `GameSpellListener.cs`: Broadcast spell launch, hit, damage, heal, cooldowns.
+- Network listeners: `Assets/Scripts/Server/Multiplayer/Network Listeners/*`
+  - `Base/PhotonBoltServerListener.cs`: Connect validation, session create/update, map loaded hook.
+  - `NetworkSpellListener.cs`: Handle cast/cancel requests.
+  - `GeneralInputListener.cs`: Targeting, emotes, chat, class change.
 
-9) Networking & Scoping
-- [N] Assets/Scripts/Core/Networking/MatchStateReplicator.cs — packs MatchState diff; sends on tick or change
-- [M] Assets/Scripts/Core/Multiplayer/PhotonBoltController.cs — register/replicate match channel; cleanup on end
-- [M] Assets/Photon/PhotonBolt/resources/BoltPrefabDatabase.asset — register Minion/Tower/Base prefabs
+## Client UI/UX
 
-10) Data & Tuning
-- [SO][N] Assets/Settings/Balance/Match/MatchTuning.asset — wave interval, counts, reward tables, respawn formula
-- [SO][N] Assets/Settings/Balance/Teams/TeamColors.asset — UI colors per team
+- Lobby: `Assets/Scripts/Client/UI/Panels/Lobby/LobbyPanel.cs`
+  - Map/session listing, start server, start client, single‑player, version display.
+- Battle HUD: `Assets/Scripts/Client/UI/Panels/Battle/BattleHudPanel.cs`
+  - Unit frames, cast bar, buffs, action bars, action error display.
+- UI Components live under `Assets/Scripts/Client/UI/*` (ActionBars, Frames, Tooltips, Screens).
 
-Migration & Integration Notes
-- Keep server authority: all MinionBrain/TowerBrain/Respawn/Economy run server-only; clients receive events/state.
-- Prefer SOs for tunables; MatchTuning aggregates primary knobs.
-- Use existing Spell pipeline for tower/minion attacks to reuse VFX, hit logic, combat text.
+## Workflow & Bootstrapping
 
-Open Questions
-- Player cap per team (2 or 3)?
-- Assist window duration (10s default)?
-- XP split radius and falloff?
+- `Assets/Scripts/Workflow/GameManager.cs`: World creation/destruction, ScriptableContainer lifecycle, update loop.
+- Standard: `Assets/Scripts/Workflow/Standard/WorkflowStandard.cs`: Lobby→Battle flow on host/join.
+- Dedicated: `Assets/Scripts/Workflow/Dedicated/WorkflowDedicated.cs`: Headless server lifecycle and restart policy.
+
+## Common Utilities
+
+- Scriptables: `Assets/Scripts/Common/Scriptables/*`
+  - `ScriptableReference` + `ScriptableContainer` registration system.
+- Events/Assertions/Logging live under `Assets/Scripts/Common/*`.
+- Build/version: `Assets/Scripts/Common/BuildInfo.cs` (central network version).
+
+## Photon SDK & Settings
+
+- Bolt runtime settings: `Assets/Photon/PhotonBolt/resources/BoltRuntimeSettings.asset`
+- Editor scripts: `Assets/Photon/PhotonBolt/editor/scripts/*`
+

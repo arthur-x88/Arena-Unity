@@ -33,3 +33,6 @@ sysinfo.txt
 # Logs
 UpgradeLog.htm
 *.log
+
+# Embedded external repos (ignore local copy)
+hon/noh-game/
